@@ -1,0 +1,23 @@
+[Unit]
+Description=BLE Advert Logger via Podman
+Wants=bluetooth.service
+After=bluetooth.service
+
+[Service]
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/podman rm -f ble-advert-logger
+
+ExecStart=/usr/bin/podman run --rm \
+  --name ble-advert-logger \
+  --security-opt label=disable \
+  -v /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro \
+  -v /etc/ble-advert-logger:/config:ro \
+  -v /var/lib/ble-advert-logger:/data \
+  localhost/ble-advert-logger:latest
+
+ExecStop=/usr/bin/podman stop ble-advert-logger
+
+[Install]
+WantedBy=multi-user.target

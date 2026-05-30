@@ -1,0 +1,22 @@
+adapter: hci0
+
+log:
+  jsonl_path: /data/events.jsonl
+  latest_path: /data/latest.json
+  stdout: true
+
+logging_policy:
+  log_all_adverts: false
+  log_unknown_service_data: true
+  log_known_devices_without_service_data: true
+
+devices:
+  # Example:
+  # C4:5E:DE:F2:10:62:
+  #   label: hallway_temperature
+  #   notes: "P T 800307"
+
+decoders:
+  service_data:
+    "00002a6e-0000-1000-8000-00805f9b34fb":
+      type: temperature_int16_le_centi_celsius

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ble-advert-logger"
+version = "0.1.0"
+description = "Passive BLE advertising logger with simple service-data decoders"
+requires-python = ">=3.9"
+dependencies = [
+  "bleak>=0.22",
+  "PyYAML>=6.0"
+]
+
+[project.scripts]
+ble-advert-logger = "ble_advert_logger.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,19 @@
+services:
+  ble-advert-logger:
+    image: ble-advert-logger:latest
+    container_name: ble-advert-logger
+    restart: unless-stopped
+    security_opt:
+      - label=disable
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
+      - ./config:/config:ro
+      - ./data:/data
+    environment:
+      PYTHONUNBUFFERED: "1"
+    command:
+      - python
+      - -m
+      - ble_advert_logger.main
+      - --config
+      - /config/config.yml

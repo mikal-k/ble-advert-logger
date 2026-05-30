@@ -1,0 +1,24 @@
+[Unit]
+Description=BLE Advert Logger
+Wants=bluetooth.service
+After=bluetooth.service
+
+[Container]
+Image=localhost/ble-advert-logger:latest
+ContainerName=ble-advert-logger
+
+Volume=/run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
+Volume=/etc/ble-advert-logger:/config:ro
+Volume=/var/lib/ble-advert-logger:/data
+
+SecurityLabelDisable=true
+Environment=PYTHONUNBUFFERED=1
+
+Exec=python -m ble_advert_logger.main --config /config/config.yml
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
