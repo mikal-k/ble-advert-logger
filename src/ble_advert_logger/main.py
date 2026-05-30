@@ -1,14 +1,20 @@
 import argparse
 import asyncio
+import sys
 import time
+from pathlib import Path
 from datetime import datetime, timezone
 
-from bleak.exc import BleakDBusError
+from bleak.exc import BleakBluetoothNotAvailableError, BleakDBusError
 from bleak import BleakScanner
 
 from .config import get_device_info, load_config, normalize_mac
 from .decoders import bytes_to_hex, decode_service_data
 from .sinks import append_jsonl, atomic_write_json
+
+
+class BlueZAccessError(RuntimeError):
+    pass
 
 
 def utc_now():
@@ -113,6 +119,7 @@ def handle_advert(device, adv, config, latest):
 
 async def run(args):
     config = load_config(args.config)
+    check_output_paths(config)
     latest = {}
 
     adapter = config.get("adapter") or "hci0"
@@ -124,6 +131,13 @@ async def run(args):
         callback,
         adapter=adapter,
     )
+
+    dbus_socket = Path("/run/dbus/system_bus_socket")
+    if not dbus_socket.exists():
+        raise BlueZAccessError(
+            "BlueZ system D-Bus socket not found: "
+            "/run/dbus/system_bus_socket"
+        )
 
     print(f"Starting BLE scan on adapter {adapter}", flush=True)
 
@@ -151,6 +165,53 @@ async def run(args):
 
         print("Stopped BLE scan", flush=True)
 
+def check_output_paths(config):
+    log_config = config.get("log") or {}
+
+    for key in ("jsonl_path", "latest_path"):
+        path = Path(log_config.get(key, ""))
+        parent = path.parent
+
+        if not parent.exists():
+            raise FileNotFoundError(
+                f"Output directory does not exist: {parent}. "
+                "Mount or create the data directory first."
+            )
+
+        if not parent.is_dir():
+            raise NotADirectoryError(
+                f"Output parent is not a directory: {parent}"
+            )
+
+        test_file = parent / ".ble-advert-logger-write-test"
+
+        try:
+            test_file.write_text("ok\n", encoding="utf-8")
+            test_file.unlink()
+        except PermissionError:
+            raise PermissionError(
+                f"Output directory is not writable: {parent}"
+            )
+
+
+def print_startup_error(message):
+    print(f"ERROR: {message}", file=sys.stderr)
+
+
+def print_bluez_help(exc):
+    print_startup_error("Could not access BlueZ over system D-Bus.")
+    print("", file=sys.stderr)
+    print("Common causes:", file=sys.stderr)
+    print("- bluetooth.service is not running on the host", file=sys.stderr)
+    print("- /run/dbus/system_bus_socket is not mounted into the container",
+          file=sys.stderr)
+    print("- the container is running rootless and D-Bus rejected auth",
+          file=sys.stderr)
+    print("- the Bluetooth adapter is blocked or unavailable", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("Try rootful Podman/Quadlet first.", file=sys.stderr)
+    print(f"Details: {exc}", file=sys.stderr)
+
 def cli():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -166,7 +227,37 @@ def cli():
     )
 
     args = parser.parse_args()
-    asyncio.run(run(args))
+
+    try:
+        asyncio.run(run(args))
+    except FileNotFoundError as exc:
+        print_startup_error(exc)
+        print("Hint: mount config as /config/config.yml and data as /data.",
+              file=sys.stderr)
+        return 2
+    except NotADirectoryError as exc:
+        print_startup_error(exc)
+        return 2
+    except PermissionError as exc:
+        print_startup_error(exc)
+        print("Hint: check ownership/permissions on the mounted data directory.",
+              file=sys.stderr)
+        return 2
+    except BlueZAccessError as exc:
+        print_bluez_help(exc)
+        return 2
+    except BleakBluetoothNotAvailableError as exc:
+        print_bluez_help(exc)
+        return 2
+    except BleakDBusError as exc:
+        print_bluez_help(exc)
+        return 2
+    except KeyboardInterrupt:
+        print("Interrupted", file=sys.stderr)
+        return 130
+
+    return 0
+
 
 
 if __name__ == "__main__":
