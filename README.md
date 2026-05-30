@@ -118,7 +118,7 @@ sudo cat /var/lib/ble-advert-logger/latest.json
 sudo mkdir -p /etc/containers/systemd
 sudo cp quadlet/ble-advert-logger.container /etc/containers/systemd/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ble-advert-logger.service
+sudo systemctl start ble-advert-logger.service
 ```
 
 Logs:
