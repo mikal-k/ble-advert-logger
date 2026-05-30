@@ -17,7 +17,11 @@ DEFAULT_CONFIG = {
     },
     "devices": {},
     "decoders": {
-        "service_data": {},
+        "service_data": {
+            "00002a6e-0000-1000-8000-00805f9b34fb": {
+                "type": "temperature_int16_le_centi_celsius",
+            },
+        },
     },
 }
 
