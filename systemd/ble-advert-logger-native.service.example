@@ -1,0 +1,13 @@
+[Unit]
+Description=BLE Advert Logger
+Wants=bluetooth.service
+After=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/opt/ble-advert-logger/.venv/bin/ble-advert-logger --config /etc/ble-advert-logger/config.yml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

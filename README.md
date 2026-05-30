@@ -133,6 +133,68 @@ Data:
 sudo tail -f /var/lib/ble-advert-logger/events.jsonl
 ```
 
+## Native Python install
+
+Native mode does not use containers. It still requires Linux, BlueZ, and access
+to the host system D-Bus.
+
+Install the needed host packages with your distribution package manager:
+
+```text
+python3
+python3-venv
+bluez
+```
+
+Make sure Bluetooth is running:
+
+```bash
+sudo systemctl enable --now bluetooth
+```
+
+Install the app under `/opt`:
+
+```bash
+sudo mkdir -p /opt/ble-advert-logger
+sudo chown "$USER:$USER" /opt/ble-advert-logger
+
+git clone https://github.com/mikal-k/ble-advert-logger.git /opt/ble-advert-logger
+cd /opt/ble-advert-logger
+
+python3 -m venv .venv
+.venv/bin/pip install .
+```
+
+Create config and data directories:
+
+```bash
+sudo mkdir -p /etc/ble-advert-logger /var/lib/ble-advert-logger
+sudo cp config.example.yml /etc/ble-advert-logger/config.yml
+```
+
+For native mode, config paths should normally be:
+
+```yaml
+log:
+  jsonl_path: /var/lib/ble-advert-logger/events.jsonl
+  latest_path: /var/lib/ble-advert-logger/latest.json
+  stdout: false
+```
+
+Run manually:
+
+```bash
+sudo /opt/ble-advert-logger/.venv/bin/ble-advert-logger \
+  --config /etc/ble-advert-logger/config.yml
+```
+
+For a systemd service, see:
+
+```text
+systemd/ble-advert-logger-native.service.example
+```
+
+
 ## Example config
 
 ```yaml
